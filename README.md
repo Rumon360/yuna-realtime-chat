@@ -7,6 +7,7 @@ Yuna is a lightweight, real-time anonymous chat app where users can chat by shar
 - Anonymous chat with a unique shareable link
 - Real-time messaging powered by Upstash Realtime
 - Automatic chat expiration after 10 minutes
+- Efficient client-side data fetching and caching with TanStack Query
 - Built with Next.js, React, and Elysia
 - Type-safe validation with Zod
 - TailwindCSS for styling
@@ -16,4 +17,5 @@ Yuna is a lightweight, real-time anonymous chat app where users can chat by shar
 - **Frontend:** Next.js, React, TailwindCSS
 - **Backend:** Elysia, Upstash Realtime
 - **Database:** Upstash Redis
-- **Utilities:** nanoid for unique IDs, date-fns for time handling, Zod for validation
+- **State & Data Fetching:** TanStack Query
+- **Utilities:** nanoid (unique IDs), date-fns (time handling), Zod (validation)
