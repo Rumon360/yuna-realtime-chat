@@ -1,8 +1,8 @@
 import { Space_Grotesk } from "next/font/google"
 
 import "./globals.css"
-import { ThemeProvider } from "@/components/theme-provider"
-import { cn } from "@/lib/utils"
+import { ThemeProvider } from "@/src/components/theme-provider"
+import { cn } from "@/src/lib/utils"
 import { Metadata } from "next"
 
 const SpaceGrotesk = Space_Grotesk({
@@ -28,7 +28,7 @@ export default function RootLayout({
       className={cn("antialiased", SpaceGrotesk.variable, "font-sans")}
     >
       <body>
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider defaultTheme="light">{children}</ThemeProvider>
       </body>
     </html>
   )

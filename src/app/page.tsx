@@ -1,13 +1,13 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
+import { Button } from "@/src/components/ui/button"
 import {
   Card,
   CardContent,
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
+} from "@/src/components/ui/card"
 import { nanoid } from "nanoid"
 import { useEffect, useState } from "react"
 
