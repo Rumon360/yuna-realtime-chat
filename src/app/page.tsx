@@ -31,7 +31,7 @@ const generateUsername = () => {
 }
 
 export default function Page() {
-  const [username, setUsername] = useState("Rumon")
+  const [username, setUsername] = useState("")
 
   useEffect(() => {
     const main = () => {
