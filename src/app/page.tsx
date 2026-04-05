@@ -53,14 +53,16 @@ export default function Page() {
       <div className="w-full max-w-md space-y-8">
         <div className="space-y-2 text-center">
           <h1 className="text-2xl font-bold text-primary">Yuna</h1>
-          <p className="text-sm text-zinc-500">
+          <p className="text-sm font-medium text-muted-foreground">
             A private, self-destructing chat room.
           </p>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>Your Identity</CardTitle>
+            <CardTitle className="font-semibold text-muted-foreground">
+              Your Identity
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-3">
@@ -68,7 +70,7 @@ export default function Page() {
             </div>
           </CardContent>
           <CardFooter>
-            <Button className="w-full">CREATE SECURE ROOM</Button>
+            <Button className="w-full font-semibold">CREATE SECURE ROOM</Button>
           </CardFooter>
         </Card>
       </div>

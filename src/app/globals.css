@@ -47,7 +47,7 @@
   --radius-4xl: calc(var(--radius) * 2.6);
   --font-mono: JetBrains Mono, monospace;
   --font-serif: Georgia, serif;
-  --radius: 0.6rem;
+  --radius: 0.2rem;
   --tracking-tighter: calc(var(--tracking-normal) - 0.05em);
   --tracking-tight: calc(var(--tracking-normal) - 0.025em);
   --tracking-wide: calc(var(--tracking-normal) + 0.025em);
@@ -172,7 +172,7 @@
   --sidebar-border: oklch(0.2503 0.0187 172.1743);
   --sidebar-ring: oklch(0.7678 0.1655 162.189);
   --destructive-foreground: oklch(0.9848 0 0);
-  --radius: 0.6rem;
+  --radius: 0.2rem;
   --font-sans: Inter, sans-serif;
   --font-serif: Georgia, serif;
   --font-mono: JetBrains Mono, monospace;

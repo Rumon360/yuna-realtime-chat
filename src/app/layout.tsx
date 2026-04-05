@@ -1,11 +1,11 @@
-import { Space_Grotesk } from "next/font/google"
+import { JetBrains_Mono } from "next/font/google"
 import { Metadata } from "next"
 import { cn } from "@/lib/utils"
 import Providers from "@/components/providers"
 
 import "./globals.css"
 
-const SpaceGrotesk = Space_Grotesk({
+const JetBrainsMono = JetBrains_Mono({
   subsets: ["latin"],
   variable: "--font-sans",
 })
@@ -25,7 +25,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={cn("antialiased", SpaceGrotesk.variable, "font-sans")}
+      className={cn("antialiased", JetBrainsMono.variable, "font-sans")}
     >
       <body>
         <Providers>{children}</Providers>
