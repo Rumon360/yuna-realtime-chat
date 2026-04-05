@@ -1,7 +1,4 @@
 import { treaty } from "@elysiajs/eden"
-import { app } from "../app/api/[[...slugs]]/route"
+import type { App } from "@/app/api/[[...slugs]]/route"
 
-export const client =
-  typeof process !== "undefined"
-    ? treaty(app).api
-    : treaty<typeof app>("localhost:3000").api
+export const client = treaty<App>(process.env.NEXT_PUBLIC_APP_URL!).api
