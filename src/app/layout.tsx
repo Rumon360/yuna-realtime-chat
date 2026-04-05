@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils"
 import Providers from "@/components/providers"
 
 import "./globals.css"
+import { Toaster } from "@/components/ui/sonner"
 
 const JetBrainsMono = JetBrains_Mono({
   subsets: ["latin"],
@@ -29,6 +30,7 @@ export default function RootLayout({
     >
       <body>
         <Providers>{children}</Providers>
+        <Toaster position="top-center" />
       </body>
     </html>
   )

@@ -11,7 +11,9 @@ import {
 import { client } from "@/lib/client"
 import { useMutation } from "@tanstack/react-query"
 import { nanoid } from "nanoid"
+import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
+import { toast } from "sonner"
 
 const ANIMALS = [
   "wolf",
@@ -34,11 +36,21 @@ const generateUsername = () => {
 
 export default function Page() {
   const [username, setUsername] = useState("")
+  const router = useRouter()
 
-  const { mutate: createRoom } = useMutation({
+  const { mutate: createRoom, isPending: isCreateRoomPending } = useMutation({
     mutationFn: async () => {
-      const res = await client.room.create.post()
-      return res.data
+      const promise = client.room.create.post()
+      toast.promise(promise, {
+        loading: "Creating room...",
+        success: (res) => {
+          if (res.data?.roomId) {
+            router.push(`/room/${res.data.roomId}`)
+          }
+          return "Room created!"
+        },
+        error: "Failed to create room",
+      })
     },
   })
 
@@ -80,6 +92,7 @@ export default function Page() {
           </CardContent>
           <CardFooter>
             <Button
+              disabled={isCreateRoomPending}
               onClick={() => createRoom()}
               className="w-full font-semibold"
             >
