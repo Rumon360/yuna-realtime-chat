@@ -8,6 +8,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { client } from "@/lib/client"
+import { useMutation } from "@tanstack/react-query"
 import { nanoid } from "nanoid"
 import { useEffect, useState } from "react"
 
@@ -32,6 +34,13 @@ const generateUsername = () => {
 
 export default function Page() {
   const [username, setUsername] = useState("")
+
+  const { mutate: createRoom } = useMutation({
+    mutationFn: async () => {
+      const res = await client.room.create.post()
+      return res.data
+    },
+  })
 
   useEffect(() => {
     const main = () => {
@@ -70,7 +79,12 @@ export default function Page() {
             </div>
           </CardContent>
           <CardFooter>
-            <Button className="w-full font-semibold">CREATE SECURE ROOM</Button>
+            <Button
+              onClick={() => createRoom()}
+              className="w-full font-semibold"
+            >
+              CREATE SECURE ROOM
+            </Button>
           </CardFooter>
         </Card>
       </div>
