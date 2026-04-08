@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { Bomb, SearchIcon, Send } from "lucide-react"
 import { useParams } from "next/navigation"
-import { useState } from "react"
+import { useRef, useState } from "react"
 
 import {
   InputGroup,
@@ -19,6 +19,10 @@ const formatTimeRemaining = (seconds: number) => {
 
 function ChatRoom() {
   const params = useParams()
+
+  const [input, setInput] = useState("")
+  const inputRef = useRef<HTMLInputElement | null>(null)
+
   const [copyStatus, setCopyStatus] = useState("COPY")
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null)
 
@@ -81,7 +85,20 @@ function ChatRoom() {
         <div className="flex gap-2">
           <div className="group relative flex-1">
             <InputGroup>
-              <InputGroupInput autoFocus placeholder="Search..." />
+              <InputGroupInput
+                ref={inputRef}
+                value={input}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && input.trim()) {
+                    // TODO: Send Message
+                    inputRef.current?.focus()
+                    setInput("")
+                  }
+                }}
+                onChange={(e) => setInput(e.target.value)}
+                autoFocus
+                placeholder="Type message..."
+              />
               <InputGroupAddon>
                 <SearchIcon />
               </InputGroupAddon>
