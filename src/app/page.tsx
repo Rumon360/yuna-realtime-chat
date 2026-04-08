@@ -40,17 +40,19 @@ export default function Page() {
 
   const { mutate: createRoom, isPending: isCreateRoomPending } = useMutation({
     mutationFn: async () => {
-      const promise = client.room.create.post()
-      toast.promise(promise, {
-        loading: "Creating room...",
-        success: (res) => {
-          if (res.data?.roomId) {
-            router.push(`/room/${res.data.roomId}`)
-          }
-          return "Room created!"
-        },
-        error: "Failed to create room",
-      })
+      toast.loading("Creating room...", { id: "create-room" })
+      const res = await client.room.create.post()
+      if (res.error) throw res.error
+      return res.data
+    },
+    onSuccess: (data) => {
+      toast.success("Room created!", { id: "create-room" })
+      if (data?.roomId) {
+        router.push(`/room/${data.roomId}`)
+      }
+    },
+    onError: () => {
+      toast.error("Failed to create room", { id: "create-room" })
     },
   })
 
