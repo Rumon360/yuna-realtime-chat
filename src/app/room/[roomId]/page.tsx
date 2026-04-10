@@ -42,15 +42,14 @@ function ChatRoom() {
     const hashParams = new URLSearchParams(hash)
     const encoded = hashParams.get("k")
 
-    if (!encoded) {
-      setKeyError(true)
-      return
-    }
-
-    importKey(encoded)
+    Promise.resolve(encoded ? importKey(encoded) : null)
       .then((key) => {
-        cryptoKeyRef.current = key
-        setKeyReady(true)
+        if (key) {
+          cryptoKeyRef.current = key
+          setKeyReady(true)
+        } else {
+          setKeyError(true)
+        }
       })
       .catch(() => setKeyError(true))
   }, [])
@@ -114,15 +113,12 @@ function ChatRoom() {
   })
 
   useEffect(() => {
-    if (ttlData?.ttl !== undefined) setTimeRemaining(ttlData.ttl)
-  }, [ttlData])
+    const ttl = ttlData?.ttl
+    if (ttl === undefined) return
 
-  useEffect(() => {
-    if (timeRemaining === null || timeRemaining < 0) return
-    if (timeRemaining === 0) {
-      router.push("/?destroyed=true")
-      return
-    }
+    // Defer initial setState to avoid synchronous setState in effect body
+    const initTimeout = setTimeout(() => setTimeRemaining(ttl), 0)
+
     const interval = setInterval(() => {
       setTimeRemaining((prev) => {
         if (prev === null || prev <= 1) {
@@ -132,7 +128,15 @@ function ChatRoom() {
         return prev - 1
       })
     }, 1000)
-    return () => clearInterval(interval)
+
+    return () => {
+      clearTimeout(initTimeout)
+      clearInterval(interval)
+    }
+  }, [ttlData?.ttl])
+
+  useEffect(() => {
+    if (timeRemaining === 0) router.push("/?destroyed=true")
   }, [timeRemaining, router])
 
   useEffect(() => {
@@ -158,12 +162,12 @@ function ChatRoom() {
   // Missing key error state
   if (keyError) {
     return (
-      <main className="flex flex-col h-svh items-center justify-center bg-linear-bg px-6">
-        <div className="w-full max-w-[420px] border border-linear-danger/20 rounded-xl px-[18px] py-[14px] bg-linear-danger/5 text-center">
-          <p className="text-[11px] font-[510] tracking-[0.12em] uppercase text-linear-danger mb-1">
+      <main className="flex h-svh flex-col items-center justify-center bg-linear-bg px-6">
+        <div className="w-full max-w-[420px] rounded-xl border border-linear-danger/20 bg-linear-danger/5 px-[18px] py-[14px] text-center">
+          <p className="mb-1 text-[11px] font-[510] tracking-[0.12em] text-linear-danger uppercase">
             Missing Encryption Key
           </p>
-          <p className="text-sm text-linear-muted leading-relaxed">
+          <p className="text-sm leading-relaxed text-linear-muted">
             Use the full room link to access this room.
           </p>
         </div>
@@ -172,38 +176,38 @@ function ChatRoom() {
   }
 
   return (
-    <main className="flex flex-col h-svh overflow-hidden bg-linear-bg">
+    <main className="flex h-svh flex-col overflow-hidden bg-linear-bg">
       {/* ── Header ──────────────────────────────────────────────────── */}
-      <header className="flex items-center justify-between px-5 py-3 bg-linear-panel border-b border-linear-border-subtle flex-shrink-0">
+      <header className="flex shrink-0 items-center justify-between border-b border-linear-border-subtle bg-linear-panel px-5 py-3">
         {/* Left: logo + room info */}
         <div className="flex items-center gap-5">
-          <span className="text-[22px] font-[400] tracking-[-0.02em] text-linear-text leading-none">
+          <span className="text-[22px] leading-none font-normal tracking-[-0.02em] text-linear-text">
             yuna
           </span>
 
-          <div className="w-px h-7 bg-linear-border-subtle flex-shrink-0" />
+          <div className="h-7 w-px shrink-0 bg-linear-border-subtle" />
 
           <div>
-            <p className="text-[10px] font-[510] tracking-[0.1em] uppercase text-linear-muted mb-0.5">
+            <p className="mb-0.5 text-[10px] font-[510] tracking-[0.1em] text-linear-muted uppercase">
               Room
             </p>
             <div className="flex items-center gap-2">
-              <span className="text-[13px] font-[510] text-linear-text tracking-tight">
+              <span className="text-[13px] font-[510] tracking-tight text-linear-text">
                 {roomId}
               </span>
               <button
                 onClick={copyLink}
-                className="border border-linear-border-subtle rounded px-2 py-0.5 text-[10px] font-[510] tracking-[0.08em] uppercase text-linear-muted bg-transparent hover:text-linear-accent hover:border-linear-accent transition-colors cursor-pointer"
+                className="cursor-pointer rounded border border-linear-border-subtle bg-transparent px-2 py-0.5 text-[10px] font-[510] tracking-[0.08em] text-linear-muted uppercase transition-colors hover:border-linear-accent hover:text-linear-accent"
               >
                 {copyStatus}
               </button>
             </div>
           </div>
 
-          <div className="w-px h-7 bg-linear-border-subtle flex-shrink-0" />
+          <div className="h-7 w-px shrink-0 bg-linear-border-subtle" />
 
           <div>
-            <p className="text-[10px] font-[510] tracking-[0.1em] uppercase text-linear-muted mb-0.5">
+            <p className="mb-0.5 text-[10px] font-[510] tracking-[0.1em] text-linear-muted uppercase">
               Self-Destruct
             </p>
             <span
@@ -222,7 +226,7 @@ function ChatRoom() {
         <button
           disabled={isDestroyRoomPending}
           onClick={() => destroyRoom()}
-          className="flex items-center gap-1.5 h-9 px-4 rounded-full border border-linear-border-subtle bg-[rgba(255,255,255,0.02)] text-linear-muted text-[13px] font-[510] hover:bg-linear-danger/10 hover:border-linear-danger/40 hover:text-linear-danger transition-colors disabled:opacity-55 disabled:cursor-not-allowed cursor-pointer"
+          className="flex h-9 cursor-pointer items-center gap-1.5 rounded-full border border-linear-border-subtle bg-[rgba(255,255,255,0.02)] px-4 text-[13px] font-[510] text-linear-muted transition-colors hover:border-linear-danger/40 hover:bg-linear-danger/10 hover:text-linear-danger disabled:cursor-not-allowed disabled:opacity-55"
         >
           <Bomb size={13} />
           destroy
@@ -232,7 +236,7 @@ function ChatRoom() {
       {/* ── Messages ────────────────────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto px-6 py-7">
         {data?.messages.length === 0 && (
-          <div className="flex items-center justify-center h-full text-sm text-linear-muted">
+          <div className="flex h-full items-center justify-center text-sm text-linear-muted">
             No messages yet — start the conversation.
           </div>
         )}
@@ -242,7 +246,7 @@ function ChatRoom() {
             const isOwn = msg.sender === username
             return (
               <div key={msg.id}>
-                <div className="flex items-baseline gap-2.5 mb-1.5">
+                <div className="mb-1.5 flex items-baseline gap-2.5">
                   <span
                     className={`text-[11px] font-[510] tracking-[0.06em] uppercase ${
                       isOwn ? "text-linear-accent" : "text-linear-body"
@@ -254,7 +258,7 @@ function ChatRoom() {
                     {format(msg.timestamp, "HH:mm")}
                   </span>
                 </div>
-                <p className="text-[15px] leading-[1.56] text-linear-body break-words max-w-[600px] m-0">
+                <p className="m-0 max-w-[600px] text-[15px] leading-[1.56] wrap-break-word text-linear-body">
                   {msg.text}
                 </p>
               </div>
@@ -265,8 +269,8 @@ function ChatRoom() {
       </div>
 
       {/* ── Input area ──────────────────────────────────────────────── */}
-      <div className="px-5 py-3.5 border-t border-linear-border-subtle bg-linear-panel flex-shrink-0">
-        <div className="flex gap-2.5 items-center">
+      <div className="shrink-0 border-t border-linear-border-subtle bg-linear-panel px-5 py-3.5">
+        <div className="flex items-center gap-2.5">
           <input
             ref={inputRef}
             value={input}
@@ -276,15 +280,15 @@ function ChatRoom() {
             }}
             autoFocus
             placeholder="Type a message…"
-            className="flex-1 h-12 px-5 rounded-full border border-linear-border bg-linear-surface text-[15px] text-linear-text placeholder:text-linear-muted focus:outline-none focus:border-linear-accent transition-colors"
+            className="h-12 flex-1 rounded-full border border-linear-border bg-linear-surface px-5 text-[15px] text-linear-text transition-colors placeholder:text-linear-muted focus:border-linear-accent focus:outline-none"
           />
           <button
             onClick={handleSend}
             disabled={!input.trim() || isSendMessagePending || !keyReady}
-            className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${
+            className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full transition-colors ${
               input.trim() && !isSendMessagePending && keyReady
-                ? "bg-linear-brand text-white cursor-pointer"
-                : "bg-linear-hover text-linear-muted cursor-not-allowed"
+                ? "cursor-pointer bg-linear-brand text-white"
+                : "cursor-not-allowed bg-linear-hover text-linear-muted"
             }`}
           >
             <Send size={18} />
