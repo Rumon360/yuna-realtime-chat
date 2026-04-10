@@ -91,7 +91,10 @@ function ChatRoom() {
           return { ...msg, text: "[encrypted message]" }
         }
       })
-    ).then(setDecryptedMessages)
+    ).then((msgs) => {
+      setDecryptedMessages(msgs)
+      setPendingMessages([])
+    })
   }, [data?.messages, keyReady])
 
   const { mutate: sendMessage, isPending: isSendMessagePending } = useMutation({
@@ -101,7 +104,7 @@ function ChatRoom() {
         { query: { roomId } }
       )
     },
-    onSettled: (_data, _error, { tempId }) => {
+    onError: (_error, { tempId }) => {
       setPendingMessages((prev) => prev.filter((m) => m.id !== tempId))
     },
   })
@@ -254,7 +257,7 @@ function ChatRoom() {
       </header>
 
       <div className="flex-1 overflow-y-auto px-6 py-7">
-        {data?.messages.length === 0 && (
+        {decryptedMessages.length === 0 && pendingMessages.length === 0 && (
           <div className="flex h-full items-center justify-center text-sm text-linear-muted">
             No messages yet — start the conversation.
           </div>
