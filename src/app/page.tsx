@@ -1,42 +1,36 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
+import useUsername from "@/hooks/use-username"
 import { client } from "@/lib/client"
 import { useMutation } from "@tanstack/react-query"
-import { nanoid } from "nanoid"
-import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { Suspense } from "react"
 import { toast } from "sonner"
 
-const ANIMALS = [
-  "wolf",
-  "fox",
-  "cat",
-  "dog",
-  "bear",
-  "lion",
-  "tiger",
-  "rabbit",
-  "deer",
-]
-
-const STORAGE_KEY = "chat_username"
-
-const generateUsername = () => {
-  const word = ANIMALS[Math.floor(Math.random() * ANIMALS.length)]
-  return `anonymouse-${word}-${nanoid(5)}`
+function NotificationBanner({
+  title,
+  message,
+}: {
+  title: string
+  message: string
+}) {
+  return (
+    <div className="w-full max-w-[420px] mb-6 border border-linear-danger/20 rounded-xl px-[18px] py-[14px] bg-linear-danger/5 text-center">
+      <p className="text-[11px] font-[510] tracking-[0.12em] uppercase text-linear-danger mb-1">
+        {title}
+      </p>
+      <p className="text-sm text-linear-muted leading-relaxed">{message}</p>
+    </div>
+  )
 }
 
-export default function Page() {
-  const [username, setUsername] = useState("")
+function Lobby() {
   const router = useRouter()
+  const { username } = useUsername()
+  const searchParams = useSearchParams()
+
+  const wasDestroyed = searchParams.get("destroyed") === "true"
+  const error = searchParams.get("error")
 
   const { mutate: createRoom, isPending: isCreateRoomPending } = useMutation({
     mutationFn: async () => {
@@ -56,56 +50,58 @@ export default function Page() {
     },
   })
 
-  useEffect(() => {
-    const main = () => {
-      const stored = localStorage.getItem(STORAGE_KEY)
-      if (stored) {
-        setUsername(stored)
-        return
-      }
-
-      const generated = generateUsername()
-      localStorage.setItem(STORAGE_KEY, generated)
-      setUsername(generated)
-    }
-    main()
-  }, [])
-
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-4">
-      <div className="w-full max-w-md space-y-8">
-        <div className="space-y-2 text-center">
-          <h1 className="text-2xl font-bold text-primary">Yuna</h1>
-          <p className="text-sm font-medium text-muted-foreground">
-            A private, self-destructing chat room.
-          </p>
+    <main className="min-h-svh bg-linear-bg flex flex-col items-center justify-center px-6 py-14">
+      {wasDestroyed && (
+        <NotificationBanner
+          title="Room Destroyed"
+          message="All messages were permanently deleted."
+        />
+      )}
+      {error === "room-not-found" && (
+        <NotificationBanner
+          title="Room Not Found"
+          message="This room may have expired or never existed."
+        />
+      )}
+      {error === "room-full" && (
+        <NotificationBanner
+          title="Room Full"
+          message="This room is at maximum capacity."
+        />
+      )}
+
+      <div className="w-full max-w-[420px] border border-linear-border rounded-2xl p-8">
+        <p className="text-[11px] font-[510] tracking-[0.12em] uppercase text-linear-subtle mb-2.5">
+          Your Anonymous Identity
+        </p>
+
+        <div className="bg-linear-hover border border-linear-border rounded-xl px-4 py-3 text-base font-[510] text-linear-text tracking-tight mb-5">
+          {username}
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="font-semibold text-muted-foreground">
-              Your Identity
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-3">
-              <div className="flex-1 border border-border p-3">{username}</div>
-            </div>
-          </CardContent>
-          <CardFooter>
-            <Button
-              disabled={isCreateRoomPending}
-              onClick={() => createRoom()}
-              className="w-full font-semibold"
-            >
-              CREATE SECURE ROOM
-            </Button>
-          </CardFooter>
-        </Card>
-      </div>
-      <div className="mt-4 font-mono text-xs text-muted-foreground">
-        (Press <kbd>d</kbd> to toggle dark mode)
+        <button
+          disabled={isCreateRoomPending}
+          onClick={() => createRoom()}
+          className="w-full h-14 rounded-full bg-linear-brand text-white text-base font-[510] tracking-wide hover:bg-linear-accent-hover transition-colors disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+        >
+          {isCreateRoomPending ? "creating…" : "create secure room"}
+        </button>
+
+        <p className="text-center mt-4 text-[13px] text-linear-muted leading-relaxed">
+          Rooms self-destruct after 10 minutes
+        </p>
       </div>
     </main>
   )
 }
+
+const Page = () => {
+  return (
+    <Suspense>
+      <Lobby />
+    </Suspense>
+  )
+}
+
+export default Page
