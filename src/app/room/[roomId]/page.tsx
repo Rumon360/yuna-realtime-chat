@@ -8,6 +8,8 @@ import { client } from "@/lib/client"
 import useUsername from "@/hooks/use-username"
 import { format } from "date-fns"
 import { useRealtime } from "@/lib/realtime-client"
+import { importKey, encryptMessage, decryptMessage } from "@/lib/crypto"
+import type { Message } from "@/lib/realtime"
 
 const formatTimeRemaining = (seconds: number) => {
   const mins = Math.floor(seconds / 60)
@@ -26,7 +28,32 @@ function ChatRoom() {
   const [copyStatus, setCopyStatus] = useState("copy")
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null)
 
+  // E2E crypto state
+  const cryptoKeyRef = useRef<CryptoKey | null>(null)
+  const [keyReady, setKeyReady] = useState(false)
+  const [keyError, setKeyError] = useState(false)
+  const [decryptedMessages, setDecryptedMessages] = useState<Message[]>([])
+
   const roomId = params.roomId as string
+
+  // Import the encryption key from the URL fragment on mount
+  useEffect(() => {
+    const hash = window.location.hash.slice(1) // remove leading #
+    const hashParams = new URLSearchParams(hash)
+    const encoded = hashParams.get("k")
+
+    if (!encoded) {
+      setKeyError(true)
+      return
+    }
+
+    importKey(encoded)
+      .then((key) => {
+        cryptoKeyRef.current = key
+        setKeyReady(true)
+      })
+      .catch(() => setKeyError(true))
+  }, [])
 
   const { data: ttlData } = useQuery({
     queryKey: ["ttl", roomId],
@@ -42,7 +69,25 @@ function ChatRoom() {
       const res = await client.messages.get({ query: { roomId } })
       return res.data
     },
+    enabled: keyReady, // don't fetch until key is ready
   })
+
+  // Decrypt all messages whenever raw data or key readiness changes
+  useEffect(() => {
+    if (!keyReady || !cryptoKeyRef.current || !data?.messages) return
+
+    const key = cryptoKeyRef.current
+    Promise.all(
+      data.messages.map(async (msg) => {
+        try {
+          const text = await decryptMessage(key, msg.text)
+          return { ...msg, text }
+        } catch {
+          return { ...msg, text: "[encrypted message]" }
+        }
+      })
+    ).then(setDecryptedMessages)
+  }, [data?.messages, keyReady])
 
   const { mutate: sendMessage, isPending: isSendMessagePending } = useMutation({
     mutationFn: async ({ text }: { text: string }) => {
@@ -92,7 +137,7 @@ function ChatRoom() {
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [data?.messages])
+  }, [decryptedMessages])
 
   const copyLink = () => {
     navigator.clipboard.writeText(window.location.href)
@@ -100,14 +145,31 @@ function ChatRoom() {
     setTimeout(() => setCopyStatus("copy"), 2000)
   }
 
-  const handleSend = () => {
-    if (!input.trim() || isSendMessagePending) return
-    sendMessage({ text: input })
+  const handleSend = async () => {
+    if (!input.trim() || isSendMessagePending || !cryptoKeyRef.current) return
+    const encryptedText = await encryptMessage(cryptoKeyRef.current, input)
+    sendMessage({ text: encryptedText })
     setInput("")
     inputRef.current?.focus()
   }
 
   const isTimerCritical = timeRemaining !== null && timeRemaining < 60
+
+  // Missing key error state
+  if (keyError) {
+    return (
+      <main className="flex flex-col h-svh items-center justify-center bg-linear-bg px-6">
+        <div className="w-full max-w-[420px] border border-linear-danger/20 rounded-xl px-[18px] py-[14px] bg-linear-danger/5 text-center">
+          <p className="text-[11px] font-[510] tracking-[0.12em] uppercase text-linear-danger mb-1">
+            Missing Encryption Key
+          </p>
+          <p className="text-sm text-linear-muted leading-relaxed">
+            Use the full room link to access this room.
+          </p>
+        </div>
+      </main>
+    )
+  }
 
   return (
     <main className="flex flex-col h-svh overflow-hidden bg-linear-bg">
@@ -176,7 +238,7 @@ function ChatRoom() {
         )}
 
         <div className="flex flex-col gap-[22px]">
-          {data?.messages.map((msg) => {
+          {decryptedMessages.map((msg) => {
             const isOwn = msg.sender === username
             return (
               <div key={msg.id}>
@@ -218,9 +280,9 @@ function ChatRoom() {
           />
           <button
             onClick={handleSend}
-            disabled={!input.trim() || isSendMessagePending}
+            disabled={!input.trim() || isSendMessagePending || !keyReady}
             className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${
-              input.trim() && !isSendMessagePending
+              input.trim() && !isSendMessagePending && keyReady
                 ? "bg-linear-brand text-white cursor-pointer"
                 : "bg-linear-hover text-linear-muted cursor-not-allowed"
             }`}
