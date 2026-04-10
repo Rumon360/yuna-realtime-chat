@@ -38,7 +38,14 @@ function useUsername() {
     main()
   }, [])
 
-  return { username }
+  const updateUsername = (name: string) => {
+    const trimmed = name.trim()
+    if (!trimmed) return
+    localStorage.setItem(STORAGE_KEY, trimmed)
+    setUsername(trimmed)
+  }
+
+  return { username, setUsername: updateUsername }
 }
 
 export default useUsername
