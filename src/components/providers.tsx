@@ -2,7 +2,7 @@
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { ReactNode, useState } from "react"
-import { ThemeProvider } from "@/components/theme-provider"
+import { RealtimeProvider } from "@upstash/realtime/client"
 
 type Props = {
   children: ReactNode
@@ -12,9 +12,11 @@ function Providers({ children }: Props) {
   const [queryClient] = useState(() => new QueryClient())
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider defaultTheme="light">{children}</ThemeProvider>
-    </QueryClientProvider>
+    <RealtimeProvider>
+      <QueryClientProvider client={queryClient}>
+        {children}
+      </QueryClientProvider>
+    </RealtimeProvider>
   )
 }
 
