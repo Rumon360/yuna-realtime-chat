@@ -1,11 +1,12 @@
 "use client"
 
+import { Button } from "@/components/ui/button"
 import useUsername from "@/hooks/use-username"
 import { client } from "@/lib/client"
 import { generateKey } from "@/lib/crypto"
 import { useMutation } from "@tanstack/react-query"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Suspense } from "react"
+import { Suspense, useState } from "react"
 import { toast } from "sonner"
 
 function NotificationBanner({
@@ -16,22 +17,34 @@ function NotificationBanner({
   message: string
 }) {
   return (
-    <div className="w-full max-w-[420px] mb-6 border border-linear-danger/20 rounded-xl px-[18px] py-[14px] bg-linear-danger/5 text-center">
-      <p className="text-[11px] font-[510] tracking-[0.12em] uppercase text-linear-danger mb-1">
+    <div className="mb-6 w-full max-w-[420px] rounded-xl border border-linear-danger/20 bg-linear-danger/5 px-[18px] py-[14px] text-center">
+      <p className="mb-1 text-[11px] font-[510] tracking-[0.12em] text-linear-danger uppercase">
         {title}
       </p>
-      <p className="text-sm text-linear-muted leading-relaxed">{message}</p>
+      <p className="text-sm leading-relaxed text-linear-muted">{message}</p>
     </div>
   )
 }
 
 function Lobby() {
   const router = useRouter()
-  const { username } = useUsername()
+  const { username, setUsername } = useUsername()
+  const [isEditing, setIsEditing] = useState(false)
+  const [draft, setDraft] = useState("")
   const searchParams = useSearchParams()
 
   const wasDestroyed = searchParams.get("destroyed") === "true"
   const error = searchParams.get("error")
+
+  const commitEdit = () => {
+    const trimmed = draft.trim()
+    if (trimmed) setUsername(trimmed)
+    setIsEditing(false)
+  }
+
+  const cancelEdit = () => {
+    setIsEditing(false)
+  }
 
   const { mutate: createRoom, isPending: isCreateRoomPending } = useMutation({
     mutationFn: async () => {
@@ -53,7 +66,7 @@ function Lobby() {
   })
 
   return (
-    <main className="min-h-svh bg-linear-bg flex flex-col items-center justify-center px-6 py-14">
+    <main className="flex min-h-svh flex-col items-center justify-center bg-linear-bg px-6 py-14">
       {wasDestroyed && (
         <NotificationBanner
           title="Room Destroyed"
@@ -73,24 +86,44 @@ function Lobby() {
         />
       )}
 
-      <div className="w-full max-w-[420px] border border-linear-border rounded-2xl p-8">
-        <p className="text-[11px] font-[510] tracking-[0.12em] uppercase text-linear-subtle mb-2.5">
+      <div className="w-full max-w-[420px] rounded-2xl border border-linear-border p-8">
+        <p className="mb-2.5 text-[11px] font-[510] tracking-[0.12em] text-linear-subtle uppercase">
           Your Anonymous Identity
         </p>
 
-        <div className="bg-linear-hover border border-linear-border rounded-xl px-4 py-3 text-base font-[510] text-linear-text tracking-tight mb-5">
-          {username}
-        </div>
+        {isEditing ? (
+          <input
+            autoFocus
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={commitEdit}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") commitEdit()
+              if (e.key === "Escape") cancelEdit()
+            }}
+            className="mb-5 w-full rounded-xl border border-linear-accent bg-linear-hover px-4 py-3 text-base font-[510] tracking-tight text-linear-text outline-none"
+          />
+        ) : (
+          <div
+            onClick={() => {
+              setDraft(username)
+              setIsEditing(true)
+            }}
+            className="mb-5 cursor-pointer rounded-xl border border-linear-border bg-linear-hover px-4 py-3 text-base font-[510] tracking-tight text-linear-text transition-colors hover:border-linear-accent"
+          >
+            {username}
+          </div>
+        )}
 
-        <button
+        <Button
           disabled={isCreateRoomPending}
           onClick={() => createRoom()}
-          className="w-full h-14 rounded-full bg-linear-brand text-white text-base font-[510] tracking-wide hover:bg-linear-accent-hover transition-colors disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+          className="h-12 w-full cursor-pointer rounded-full text-base"
         >
           {isCreateRoomPending ? "creating…" : "create secure room"}
-        </button>
+        </Button>
 
-        <p className="text-center mt-4 text-[13px] text-linear-muted leading-relaxed">
+        <p className="mt-4 text-center text-[13px] leading-relaxed text-linear-muted">
           Rooms self-destruct after 10 minutes
         </p>
       </div>
