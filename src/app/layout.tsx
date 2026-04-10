@@ -1,12 +1,11 @@
-import { JetBrains_Mono } from "next/font/google"
+import { Inter } from "next/font/google"
 import { Metadata } from "next"
 import { cn } from "@/lib/utils"
 import Providers from "@/components/providers"
-
 import "./globals.css"
 import { Toaster } from "@/components/ui/sonner"
 
-const JetBrainsMono = JetBrains_Mono({
+const inter = Inter({
   subsets: ["latin"],
   variable: "--font-sans",
 })
@@ -25,8 +24,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      suppressHydrationWarning
-      className={cn("antialiased", JetBrainsMono.variable, "font-sans")}
+      className={cn("dark antialiased", inter.variable, "font-sans")}
     >
       <body>
         <Providers>{children}</Providers>
