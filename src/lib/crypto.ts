@@ -64,7 +64,6 @@ export async function decryptMessage(key: CryptoKey, ciphertext: string): Promis
   if (colonIdx === -1) throw new Error("Invalid ciphertext: missing delimiter")
   const iv = base64urlDecode(ciphertext.slice(0, colonIdx))
   const ct = base64urlDecode(ciphertext.slice(colonIdx + 1))
-  // @ts-expect-error - TypeScript has issues with Uint8Array<ArrayBufferLike> compatibility
-  const plaintext: ArrayBuffer = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, ct)
+  const plaintext: ArrayBuffer = await crypto.subtle.decrypt({ name: "AES-GCM", iv: iv as BufferSource }, key, ct as BufferSource)
   return new TextDecoder().decode(new Uint8Array(plaintext))
 }
