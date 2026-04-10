@@ -2,6 +2,7 @@
 
 import useUsername from "@/hooks/use-username"
 import { client } from "@/lib/client"
+import { generateKey } from "@/lib/crypto"
 import { useMutation } from "@tanstack/react-query"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Suspense } from "react"
@@ -39,10 +40,11 @@ function Lobby() {
       if (res.error) throw res.error
       return res.data
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       toast.success("Room created!", { id: "create-room" })
       if (data?.roomId) {
-        router.push(`/room/${data.roomId}`)
+        const { encoded } = await generateKey()
+        router.push(`/room/${data.roomId}#k=${encoded}`)
       }
     },
     onError: () => {
