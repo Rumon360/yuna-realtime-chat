@@ -11,6 +11,14 @@ import { useRealtime } from "@/lib/realtime-client"
 import { importKey, encryptMessage, decryptMessage } from "@/lib/crypto"
 import type { Message } from "@/lib/realtime"
 
+type PendingMessage = {
+  id: string
+  sender: string
+  text: string
+  timestamp: number
+  roomId: string
+}
+
 const formatTimeRemaining = (seconds: number) => {
   const mins = Math.floor(seconds / 60)
   const secs = seconds % 60
@@ -28,15 +36,14 @@ function ChatRoom() {
   const [copyStatus, setCopyStatus] = useState("copy")
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null)
 
-  // E2E crypto state
   const cryptoKeyRef = useRef<CryptoKey | null>(null)
   const [keyReady, setKeyReady] = useState(false)
   const [keyError, setKeyError] = useState(false)
   const [decryptedMessages, setDecryptedMessages] = useState<Message[]>([])
+  const [pendingMessages, setPendingMessages] = useState<PendingMessage[]>([])
 
   const roomId = params.roomId as string
 
-  // Import the encryption key from the URL fragment on mount
   useEffect(() => {
     const hash = window.location.hash.slice(1) // remove leading #
     const hashParams = new URLSearchParams(hash)
@@ -71,7 +78,6 @@ function ChatRoom() {
     enabled: keyReady, // don't fetch until key is ready
   })
 
-  // Decrypt all messages whenever raw data or key readiness changes
   useEffect(() => {
     if (!keyReady || !cryptoKeyRef.current || !data?.messages) return
 
@@ -89,11 +95,14 @@ function ChatRoom() {
   }, [data?.messages, keyReady])
 
   const { mutate: sendMessage, isPending: isSendMessagePending } = useMutation({
-    mutationFn: async ({ text }: { text: string }) => {
+    mutationFn: async ({ text }: { text: string; tempId: string }) => {
       await client.messages.post(
         { sender: username, text },
         { query: { roomId } }
       )
+    },
+    onSettled: (_data, _error, { tempId }) => {
+      setPendingMessages((prev) => prev.filter((m) => m.id !== tempId))
     },
   })
 
@@ -116,7 +125,6 @@ function ChatRoom() {
     const ttl = ttlData?.ttl
     if (ttl === undefined) return
 
-    // Defer initial setState to avoid synchronous setState in effect body
     const initTimeout = setTimeout(() => setTimeRemaining(ttl), 0)
 
     const interval = setInterval(() => {
@@ -151,15 +159,30 @@ function ChatRoom() {
 
   const handleSend = async () => {
     if (!input.trim() || isSendMessagePending || !cryptoKeyRef.current) return
-    const encryptedText = await encryptMessage(cryptoKeyRef.current, input)
-    sendMessage({ text: encryptedText })
+
+    const plaintext = input
+    const tempId = crypto.randomUUID()
+
+    setPendingMessages((prev) => [
+      ...prev,
+      {
+        id: tempId,
+        sender: username,
+        text: plaintext,
+        timestamp: Date.now(),
+        roomId,
+      },
+    ])
+
     setInput("")
     inputRef.current?.focus()
+
+    const encryptedText = await encryptMessage(cryptoKeyRef.current, plaintext)
+    sendMessage({ text: encryptedText, tempId })
   }
 
   const isTimerCritical = timeRemaining !== null && timeRemaining < 60
 
-  // Missing key error state
   if (keyError) {
     return (
       <main className="flex h-svh flex-col items-center justify-center bg-linear-bg px-6">
@@ -177,9 +200,7 @@ function ChatRoom() {
 
   return (
     <main className="flex h-svh flex-col overflow-hidden bg-linear-bg">
-      {/* ── Header ──────────────────────────────────────────────────── */}
       <header className="flex shrink-0 items-center justify-between border-b border-linear-border-subtle bg-linear-panel px-5 py-3">
-        {/* Left: logo + room info */}
         <div className="flex items-center gap-5">
           <span className="text-[22px] leading-none font-normal tracking-[-0.02em] text-linear-text">
             yuna
@@ -222,7 +243,6 @@ function ChatRoom() {
           </div>
         </div>
 
-        {/* Right: destroy button */}
         <button
           disabled={isDestroyRoomPending}
           onClick={() => destroyRoom()}
@@ -233,7 +253,6 @@ function ChatRoom() {
         </button>
       </header>
 
-      {/* ── Messages ────────────────────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto px-6 py-7">
         {data?.messages.length === 0 && (
           <div className="flex h-full items-center justify-center text-sm text-linear-muted">
@@ -242,7 +261,7 @@ function ChatRoom() {
         )}
 
         <div className="flex flex-col gap-[22px]">
-          {decryptedMessages.map((msg) => {
+          {[...decryptedMessages, ...pendingMessages].map((msg) => {
             const isOwn = msg.sender === username
             return (
               <div key={msg.id}>
@@ -268,7 +287,6 @@ function ChatRoom() {
         </div>
       </div>
 
-      {/* ── Input area ──────────────────────────────────────────────── */}
       <div className="shrink-0 border-t border-linear-border-subtle bg-linear-panel px-5 py-3.5">
         <div className="flex items-center gap-2.5">
           <input
